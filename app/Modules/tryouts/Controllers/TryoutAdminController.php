@@ -14,12 +14,32 @@ class TryoutAdminController extends Controller
 {
     private TryoutLocationService $locationService;
     private TryoutService $tryoutService;
+    private string $modulePath;
 
     public function __construct()
     {
         parent::__construct();
         $this->locationService = new TryoutLocationService();
         $this->tryoutService = new TryoutService();
+        $this->modulePath = dirname(__DIR__);
+    }
+
+    /**
+     * Load view from module's Views directory and return as string
+     */
+    protected function moduleView(string $viewPath, array $data = []): string
+    {
+        $viewFile = $this->modulePath . '/Views/' . str_replace('.', '/', $viewPath) . '.php';
+
+        if (!file_exists($viewFile)) {
+            die("View file not found: $viewFile");
+        }
+
+        extract($data);
+
+        ob_start();
+        include $viewFile;
+        return ob_get_clean();
     }
 
     /**
@@ -81,35 +101,31 @@ class TryoutAdminController extends Controller
      */
     public function sidebarLink(array $context): string
     {
+        $currentPath = $context['currentPath'] ?? '';
+        $isActive = strpos($currentPath, '/admin/tryout') === 0;
+
         ob_start();
         ?>
+        <!-- Tryouts Section -->
         <li class="nav-item">
-            <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#tryoutsMenu">
-                <i class="bi bi-calendar-check"></i> Tryouts
+            <a class="nav-link text-white-50 small text-uppercase fw-bold px-4 py-2" href="#tryoutsModuleMenu" data-bs-toggle="collapse">
+                <i class="fas fa-clipboard-check me-2"></i> Tryouts
             </a>
-            <ul id="tryoutsMenu" class="collapse nav flex-column ms-3">
-                <li class="nav-item">
-                    <a class="nav-link" href="/admin/tryouts">
-                        <i class="bi bi-list"></i> View Tryouts
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/admin/tryout-locations">
-                        <i class="bi bi-geo-alt"></i> Locations
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/admin/tryout-registrations">
-                        <i class="bi bi-person-check"></i> Registrations
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/admin/tryouts/import">
-                        <i class="bi bi-upload"></i> Import Tryouts
-                    </a>
-                </li>
-            </ul>
         </li>
+        <div class="collapse <?php echo $isActive ? 'show' : ''; ?>" id="tryoutsModuleMenu">
+            <a href="/admin/tryouts" class="nav-link <?php echo $currentPath === '/admin/tryouts' ? 'active bg-primary' : ''; ?> text-white-75 px-4 py-2 d-flex align-items-center">
+                <i class="fas fa-list me-2"></i> View Tryouts
+            </a>
+            <a href="/admin/tryout-locations" class="nav-link <?php echo strpos($currentPath, '/admin/tryout-locations') === 0 ? 'active bg-primary' : ''; ?> text-white-75 px-4 py-2 d-flex align-items-center">
+                <i class="fas fa-map-marker-alt me-2"></i> Locations
+            </a>
+            <a href="/admin/tryout-registrations" class="nav-link <?php echo strpos($currentPath, '/admin/tryout-registrations') === 0 ? 'active bg-primary' : ''; ?> text-white-75 px-4 py-2 d-flex align-items-center">
+                <i class="fas fa-user-check me-2"></i> Registrations
+            </a>
+            <a href="/admin/tryouts/import" class="nav-link <?php echo $currentPath === '/admin/tryouts/import' ? 'active bg-primary' : ''; ?> text-white-75 px-4 py-2 d-flex align-items-center">
+                <i class="fas fa-upload me-2"></i> Import Tryouts
+            </a>
+        </div>
         <?php
         return ob_get_clean();
     }
@@ -146,7 +162,7 @@ class TryoutAdminController extends Controller
         $totalCount = $this->locationService->getLocationCount($filters);
         $totalPages = ceil($totalCount / $limit);
 
-        $content = $this->view('admin/locations/index', [
+        $content = $this->moduleView('admin/locations/index', [
             'locations' => $locations,
             'page' => $page,
             'totalPages' => $totalPages,
@@ -162,7 +178,7 @@ class TryoutAdminController extends Controller
      */
     public function createLocationForm(): void
     {
-        $content = $this->view('admin/locations/create', []);
+        $content = $this->moduleView('admin/locations/create', []);
         echo $this->adminView('Create Location', $content);
     }
 
@@ -213,7 +229,7 @@ class TryoutAdminController extends Controller
             exit;
         }
 
-        $content = $this->view('admin/locations/edit', [
+        $content = $this->moduleView('admin/locations/edit', [
             'location' => $location
         ]);
 
@@ -344,7 +360,7 @@ class TryoutAdminController extends Controller
         // Get locations for filter dropdown
         $locations = $this->locationService->getActiveLocations();
 
-        $content = $this->view('admin/tryouts/index', [
+        $content = $this->moduleView('admin/tryouts/index', [
             'tryouts' => $tryouts,
             'page' => $page,
             'totalPages' => $totalPages,
@@ -363,7 +379,7 @@ class TryoutAdminController extends Controller
     {
         $locations = $this->locationService->getActiveLocations();
 
-        $content = $this->view('admin/tryouts/create', [
+        $content = $this->moduleView('admin/tryouts/create', [
             'locations' => $locations
         ]);
 
@@ -419,7 +435,7 @@ class TryoutAdminController extends Controller
 
         $locations = $this->locationService->getActiveLocations();
 
-        $content = $this->view('admin/tryouts/edit', [
+        $content = $this->moduleView('admin/tryouts/edit', [
             'tryout' => $tryout,
             'locations' => $locations
         ]);
@@ -519,7 +535,7 @@ class TryoutAdminController extends Controller
      */
     public function importForm(): void
     {
-        $content = $this->view('admin/tryouts/import', []);
+        $content = $this->moduleView('admin/tryouts/import', []);
         echo $this->adminView('Import Tryouts', $content);
     }
 
@@ -557,31 +573,64 @@ class TryoutAdminController extends Controller
      */
     private function adminView(string $title, string $content): string
     {
+        $user = [
+            'id' => $this->session->get('user_id'),
+            'username' => $this->session->get('username'),
+            'role' => $this->session->get('role')
+        ];
+        $pageTitle = $title;
+
         ob_start();
-        require __DIR__ . '/../../../Views/layouts/header.php';
-        require __DIR__ . '/../../../Views/layouts/admin-sidebar.php';
         ?>
-        <div class="container-fluid">
-            <h2 class="mb-4"><?= htmlspecialchars($title) ?></h2>
-
-            <?php foreach ($this->getSuccess() as $msg): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <?= htmlspecialchars($msg) ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endforeach; ?>
-
-            <?php foreach ($this->getErrors() as $msg): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <?= htmlspecialchars($msg) ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endforeach; ?>
-
-            <?= $content ?>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= htmlspecialchars($title) ?> - IVL Baseball League</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { padding-left: 250px; background-color: #f8f9fa; }
+        .main-content { padding: 20px; padding-top: 80px; }
+        @media (max-width: 768px) {
+            body { padding-left: 0; }
+            .sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
         <?php
-        require __DIR__ . '/../../../Views/layouts/footer.php';
+        require __DIR__ . '/../../../Views/partials/header.php';
+        require __DIR__ . '/../../../Views/partials/admin-sidebar.php';
+        ?>
+        <div class="main-content">
+            <div class="container-fluid">
+                <h2 class="mb-4"><?= htmlspecialchars($title) ?></h2>
+
+                <?php foreach ($this->getSuccess() as $msg): ?>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <?= htmlspecialchars($msg) ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <?php endforeach; ?>
+
+                <?php foreach ($this->getErrors() as $msg): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <?= htmlspecialchars($msg) ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <?php endforeach; ?>
+
+                <?= $content ?>
+            </div>
+        </div>
+        <?php require __DIR__ . '/../../../Views/partials/footer.php'; ?>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+        <?php
         return ob_get_clean();
     }
 }

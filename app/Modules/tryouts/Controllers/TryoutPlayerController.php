@@ -16,6 +16,7 @@ class TryoutPlayerController extends Controller
     private TryoutService $tryoutService;
     private TryoutRegistrationService $registrationService;
     private Database $db;
+    private string $modulePath;
 
     public function __construct()
     {
@@ -23,6 +24,25 @@ class TryoutPlayerController extends Controller
         $this->tryoutService = new TryoutService();
         $this->registrationService = new TryoutRegistrationService();
         $this->db = Database::getInstance();
+        $this->modulePath = dirname(__DIR__);
+    }
+
+    /**
+     * Load view from module's Views directory and return as string
+     */
+    protected function moduleView(string $viewPath, array $data = []): string
+    {
+        $viewFile = $this->modulePath . '/Views/' . str_replace('.', '/', $viewPath) . '.php';
+
+        if (!file_exists($viewFile)) {
+            die("View file not found: $viewFile");
+        }
+
+        extract($data);
+
+        ob_start();
+        include $viewFile;
+        return ob_get_clean();
     }
 
     /**
@@ -157,7 +177,7 @@ class TryoutPlayerController extends Controller
             'SELECT id, name, city, state FROM tryout_locations WHERE active = 1 ORDER BY name ASC'
         );
 
-        $content = $this->view('player/browse', [
+        $content = $this->moduleView('player/browse', [
             'tryouts' => $tryouts,
             'filters' => $filters,
             'locations' => $locations
@@ -203,7 +223,7 @@ class TryoutPlayerController extends Controller
             );
         }
 
-        $content = $this->view('player/view', [
+        $content = $this->moduleView('player/view', [
             'tryout' => $tryout,
             'existingRegistrations' => $existingRegistrations
         ]);
@@ -245,7 +265,7 @@ class TryoutPlayerController extends Controller
             exit;
         }
 
-        $content = $this->view('player/register', [
+        $content = $this->moduleView('player/register', [
             'tryout' => $tryout,
             'players' => $players
         ]);
@@ -333,7 +353,7 @@ class TryoutPlayerController extends Controller
             exit;
         }
 
-        $content = $this->view('player/confirmation', [
+        $content = $this->moduleView('player/confirmation', [
             'registration' => $registration
         ]);
 
@@ -395,7 +415,7 @@ class TryoutPlayerController extends Controller
 
         $registrations = $this->db->fetchAll($query, $params);
 
-        $content = $this->view('player/my-registrations', [
+        $content = $this->moduleView('player/my-registrations', [
             'registrations' => $registrations,
             'tab' => $tab
         ]);
@@ -453,31 +473,64 @@ class TryoutPlayerController extends Controller
      */
     private function playerView(string $title, string $content): string
     {
+        $user = [
+            'id' => $this->session->get('user_id'),
+            'username' => $this->session->get('username'),
+            'role' => $this->session->get('role')
+        ];
+        $pageTitle = $title;
+
         ob_start();
-        require __DIR__ . '/../../../Views/layouts/header.php';
-        require __DIR__ . '/../../../Views/layouts/player-sidebar.php';
         ?>
-        <div class="container-fluid">
-            <h2 class="mb-4"><?= htmlspecialchars($title) ?></h2>
-
-            <?php foreach ($this->getSuccess() as $msg): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <?= $msg ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endforeach; ?>
-
-            <?php foreach ($this->getErrors() as $msg): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <?= htmlspecialchars($msg) ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endforeach; ?>
-
-            <?= $content ?>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= htmlspecialchars($title) ?> - IVL Baseball League</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { padding-left: 250px; background-color: #f8f9fa; }
+        .main-content { padding: 20px; padding-top: 80px; }
+        @media (max-width: 768px) {
+            body { padding-left: 0; }
+            .sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
         <?php
-        require __DIR__ . '/../../../Views/layouts/footer.php';
+        require __DIR__ . '/../../../Views/partials/header.php';
+        require __DIR__ . '/../../../Views/partials/player-sidebar.php';
+        ?>
+        <div class="main-content">
+            <div class="container-fluid">
+                <h2 class="mb-4"><?= htmlspecialchars($title) ?></h2>
+
+                <?php foreach ($this->getSuccess() as $msg): ?>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <?= $msg ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <?php endforeach; ?>
+
+                <?php foreach ($this->getErrors() as $msg): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <?= htmlspecialchars($msg) ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <?php endforeach; ?>
+
+                <?= $content ?>
+            </div>
+        </div>
+        <?php require __DIR__ . '/../../../Views/partials/footer.php'; ?>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+        <?php
         return ob_get_clean();
     }
 }
