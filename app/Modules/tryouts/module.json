@@ -1,0 +1,16 @@
+{
+    "name": "Tryouts Management",
+    "version": "1.0.0",
+    "description": "Comprehensive tryout management system with locations, events, registrations, waitlist, and email notifications",
+    "author": "IVL Baseball",
+    "hooks": {
+        "dashboard.admin": "TryoutAdminController@dashboardWidget",
+        "dashboard.player": "TryoutPlayerController@dashboardWidget",
+        "nav.admin.sidebar": "TryoutAdminController@sidebarLink",
+        "nav.player.sidebar": "TryoutPlayerController@sidebarLink"
+    },
+    "routes": "routes.php",
+    "requires": {
+        "php": ">=8.0"
+    }
+}

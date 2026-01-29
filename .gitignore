@@ -1,0 +1,58 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Composer
+vendor/
+composer.lock
+
+# Storage directories
+storage/logs/*
+storage/cache/*
+storage/uploads/*
+storage/temp/*
+
+# System files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# IDE
+.phpstorm.meta.php
+_ide_helper.php
+
+# OS
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+*.orig
+
+# Node (for future frontend build tools)
+node_modules/
+package-lock.json
+yarn.lock
+
+# PHP
+.phpunit.result.cache
+
+# Git
+.git/
+.github/
+
+# Data files
+*.csv
+
+# Site marker (dashboard integration)
+.site_name
+
+# Claude context
+.claude/

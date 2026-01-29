@@ -1,0 +1,14 @@
+{
+    "name": "Attendance Tracking",
+    "version": "1.0.0",
+    "description": "Track practice and game attendance for teams. Coaches can mark players as present, absent, or excused.",
+    "author": "IVL Baseball",
+    "hooks": {
+        "dashboard.coach": "AttendanceController@coachWidget",
+        "nav.coach.sidebar": "AttendanceController@sidebarLink"
+    },
+    "routes": "routes.php",
+    "requires": {
+        "php": ">=8.0"
+    }
+}
